@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aviator</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #121212;
+            color: #fff;
+            margin: 0;
+            padding: 20px;
+        }
+        .game-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #1e1e1e;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 0 15px rgba(0,0,0,0.3);
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #333;
+        }
+        h1 {
+            color: #4CAF50;
+            margin: 0;
+        }
+        .balance {
+            font-size: 1.2em;
+            font-weight: bold;
+        }
+        .multiplier-display {
+            position: relative;
+            height: 250px;
+            margin: 20px 0;
+            background-color: #2a2a2a;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .multiplier-value {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            font-size: 1.8em;
+            font-weight: bold;
+            color: #4CAF50;
+            z-index: 10;
+            background-color: rgba(0,0,0,0.5);
+            padding: 5px 10px;
+            border-radius: 5px;
+        }
+        .airplane {
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            transition: bottom 0.1s linear;
+            z-index: 5;
+        }
+        .airplane svg {
+            width: 50px;
+            height: 50px;
+            fill: #fff;
+        }
+        .flight-path {
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            width: 2px;
+            height: 100%;
+            background: linear-gradient(to top, rgba(76,175,80,0.8), transparent);
+            z-index: 1;
+        }
+        .controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .bet-controls, .cashout-controls {
+            background-color: #2a2a2a;
+            padding: 15px;
+            border-radius: 8px;
+        }
+        .bet-amount {
+            margin-bottom: 10px;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            border: none;
+            border-radius: 5px;
+            background-color: #333;
+            color: #fff;
+            font-size: 16px;
+        }
+        .btn-group {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 10px;
+        }
+        button {
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .btn-bet {
+            background-color: #4CAF50;
+            color: white;
+            width: 100%;
+        }
+        .btn-cashout {
+            background-color: #f44336;
+            color: white;
+            width: 100%;
+        }
+        .btn-half, .btn-double, .btn-max {
+            flex: 1;
+            background-color: #333;
+            color: #fff;
+        }
+        .history {
+            background-color: #2a2a2a;
+            padding: 15px;
+            border-radius: 8px;
+        }
+        .history-title {
+            margin-top: 0;
+            margin-bottom: 10px;
+        }
+        .history-items {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .history-item {
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-weight: bold;
+            font-size: 14px;
+        }
+        .history-item.crash {
+            background-color: #f44336;
+        }
+        .history-item.win {
+            background-color: #4CAF50;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div class="header">
+            <h1>NALA</h1>
+            <div class="balance">Balance: $<span id="balance">1000.00</span></div>
+        </div>
+        
+        <div class="multiplier-display">
+            <div class="multiplier-value">1.00x</div>
+            <div class="airplane">
+                <svg viewBox="0 0 24 24">
+                    <path d="M22,16.21V14.73A3.79,3.79 0 0,0 18.21,11H4.79A3.79,3.79 0 0,0 1,14.73V16.21A3.79,3.79 0 0,0 4.79,20H18.21A3.79,3.79 0 0,0 22,16.21M3.5,14.72V16.21A1.29,1.29 0 0,0 4.79,17.5H18.21A1.29,1.29 0 0,0 19.5,16.21V14.72A1.29,1.29 0 0,0 18.21,13.43H4.79A1.29,1.29 0 0,0 3.5,14.72M12.63,7.5H16.13L18.13,10.5H19.5L16.63,5.5H14.63L12.08,4L9.63,5.5H7.63L4.75,10.5H6.13L8.13,7.5H11.63L9.13,10.5H10.63L12.08,9.5L13.63,10.5H15.13L12.63,7.5Z" />
+                </svg>
+            </div>
+            <div class="flight-path"></div>
+        </div>
+        
+        <div class="controls">
+            <div class="bet-controls">
+                <div class="bet-amount">
+                    <input type="number" id="betAmount" min="1" value="10" step="1">
+                </div>
+                <div class="btn-group">
+                    <button class="btn-half">1/2</button>
+                    <button class="btn-double">2x</button>
+                    <button class="btn-max">MAX</button>
+                </div>
+                <button id="placeBet" class="btn-bet">Place Bet</button>
+            </div>
+            
+            <div class="cashout-controls">
+                <input type="number" id="autoCashout" min="1.1" step="0.1" value="2.0" placeholder="Auto Cashout">
+                <button id="cashOut" class="btn-cashout" disabled>Cash Out</button>
+            </div>
+        </div>
+        
+        <div class="history">
+            <h3 class="history-title">Recent Multipliers</h3>
+            <div class="history-items" id="historyItems"></div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Game state
+            const state = {
+                balance: 1000.00,
+                currentBet: 0,
+                currentMultiplier: 1.00,
+                isGameRunning: false,
+                cashoutMultiplier: 0,
+                autoCashout: 2.0,
+                crashPoint: 0,
+                gameInterval: null
+            };
+            
+            // DOM elements
+            const elements = {
+                balance: document.getElementById('balance'),
+                betAmount: document.getElementById('betAmount'),
+                autoCashout: document.getElementById('autoCashout'),
+                placeBet: document.getElementById('placeBet'),
+                cashOut: document.getElementById('cashOut'),
+                multiplierValue: document.querySelector('.multiplier-value'),
+                airplane: document.querySelector('.airplane'),
+                historyItems: document.getElementById('historyItems')
+            };
+            
+            // Initialize game
+            updateBalance();
+            
+            // Event listeners
+            elements.placeBet.addEventListener('click', placeBet);
+            elements.cashOut.addEventListener('click', cashOut);
+            elements.autoCashout.addEventListener('change', updateAutoCashout);
+            
+            document.querySelector('.btn-half').addEventListener('click', () => {
+                elements.betAmount.value = Math.max(1, Math.floor(elements.betAmount.value / 2));
+            });
+            
+            document.querySelector('.btn-double').addEventListener('click', () => {
+                elements.betAmount.value = Math.max(1, elements.betAmount.value * 2);
+            });
+            
+            document.querySelector('.btn-max').addEventListener('click', () => {
+                elements.betAmount.value = state.balance;
+            });
+            
+            // Game functions
+            function updateBalance() {
+                elements.balance.textContent = state.balance.toFixed(2);
+            }
+            
+            function updateAutoCashout() {
+                state.autoCashout = parseFloat(elements.autoCashout.value) || 2.0;
+            }
+            
+            function placeBet() {
+                if (state.isGameRunning) return;
+                
+                const betAmount = parseFloat(elements.betAmount.value);
+                
+                if (isNaN(betAmount) || betAmount < 1) {
+                    alert('Please enter a valid bet amount (minimum $1)');
+                    return;
+                }
+                
+                if (betAmount > state.balance) {
+                    alert('Insufficient balance');
+                    return;
+                }
+                
+                state.currentBet = betAmount;
+                state.balance -= state.currentBet;
+                updateBalance();
+                
+                startGame();
+            }
+            
+            function startGame() {
+                state.isGameRunning = true;
+                state.currentMultiplier = 1.00;
+                state.cashoutMultiplier = 0;
+                
+                // Generate random crash point (1.1x to 10x)
+                state.crashPoint = 1.1 + Math.random() * 8.9;
+                
+                elements.placeBet.disabled = true;
+                elements.cashOut.disabled = false;
+                elements.airplane.style.bottom = '0px';
+                
+                state.gameInterval = setInterval(updateGame, 100);
+            }
+            
+            function updateGame() {
+                // Increase multiplier
+                state.currentMultiplier += 0.01;
+                elements.multiplierValue.textContent = state.currentMultiplier.toFixed(2) + 'x';
+                
+                // Move airplane up
+                const newBottom = (state.currentMultiplier / state.crashPoint) * 100;
+                elements.airplane.style.bottom = `${newBottom}%`;
+                
+                // Check for auto cashout
+                if (state.autoCashout > 0 && state.currentMultiplier >= state.autoCashout) {
+                    cashOut();
+                    return;
+                }
+                
+                // Check for crash
+                if (state.currentMultiplier >= state.crashPoint) {
+                    endGame(false);
+                }
+            }
+            
+            function cashOut() {
+                if (!state.isGameRunning) return;
+                
+                state.cashoutMultiplier = state.currentMultiplier;
+                endGame(true);
+            }
+            
+            function endGame(didCashout) {
+                clearInterval(state.gameInterval);
+                state.isGameRunning = false;
+                
+                elements.placeBet.disabled = false;
+                elements.cashOut.disabled = true;
+                
+                // Calculate winnings
+                if (didCashout) {
+                    const winnings = state.currentBet * state.cashoutMultiplier;
+                    state.balance += winnings;
+                    updateBalance();
+                    addToHistory(state.cashoutMultiplier, true);
+                } else {
+                    addToHistory(state.currentMultiplier, false);
+                }
+            }
+            
+            function addToHistory(multiplier, isWin) {
+                const historyItem = document.createElement('div');
+                historyItem.className = `history-item ${isWin ? 'win' : 'crash'}`;
+                historyItem.textContent = multiplier.toFixed(2) + 'x';
+                elements.historyItems.insertBefore(historyItem, elements.historyItems.firstChild);
+                
+                // Limit to 15 history items
+                if (elements.historyItems.children.length > 15) {
+                    elements.historyItems.removeChild(elements.historyItems.lastChild);
+                }
+            }
+        });
+    </script>
+</body>
+</html>
